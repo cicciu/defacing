@@ -4,6 +4,7 @@ import org.opencv.core.Core.MinMaxLocResult;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -19,10 +20,10 @@ public class Defacer {
   private Defacer() {}
 
   public static PlanarImage apply(Attributes attributes, PlanarImage srcImg) {
-
     PlanarImage faceDetectImg = faceDetect(srcImg);
-
-    return faceDetectImg;
+    PlanarImage defaceImage = defaceImage(srcImg, faceDetectImg);
+    PlanarImage imageForVisualizing = rescaleForVisualizing(defaceImage, 50.0, 50.0);
+    return imageForVisualizing;
   }
 
   public static PlanarImage faceDetect(PlanarImage srcImg) {
@@ -46,11 +47,7 @@ public class Defacer {
     Imgproc.morphologyEx(faceDetectImg.toImageCV(), faceDetectImg.toMat(), Imgproc.MORPH_CLOSE, kernel2);
 
     // RESCALE 8BIT
-    double min = minMaxLocResult.minVal;
-    double max = minMaxLocResult.maxVal;
-    double slope = 255.0 / (max - min);
-    double yint = 255.0 - slope * max;
-    faceDetectImg = ImageProcessor.rescaleToByte(faceDetectImg.toImageCV(), slope, yint);
+    faceDetectImg = transformToByte(faceDetectImg).toImageCV();
 
     // CANNY DETECT CONTOUR
     Imgproc.Canny(faceDetectImg.toImageCV(), faceDetectImg.toMat(), 240, 260);
@@ -60,5 +57,41 @@ public class Defacer {
     Imgproc.rectangle(faceDetectImg.toImageCV(), rect, new Scalar(0,0,0), Imgproc.FILLED);
 
     return faceDetectImg;
+  }
+
+  public static PlanarImage defaceImage(PlanarImage srcImg, PlanarImage faceDetectImg) {
+    ImageCV imageDefaced = new ImageCV();
+    srcImg.toMat().copyTo(imageDefaced);
+    // scan the image from left to right until the face is detected in Y
+    for (int x = 0; x < faceDetectImg.width(); x++) {
+      for (int y = 0; y < faceDetectImg.height(); y++) {
+        double pixelValue = faceDetectImg.toMat().get(y, x)[0];
+        if(pixelValue != 0.0) {
+          Imgproc.line(imageDefaced, new Point(x,y), new Point(x,0), new Scalar(2000,2000,2000));
+        }
+      }
+    }
+    return imageDefaced;
+  }
+
+  public static PlanarImage transformToByte(PlanarImage srcImg) {
+    ImageCV imgTransform = new ImageCV();
+    srcImg.toMat().copyTo(imgTransform);
+
+    MinMaxLocResult minMaxLocResult = ImageProcessor.findMinMaxValues(imgTransform.toMat());
+    double min = minMaxLocResult.minVal;
+    double max = minMaxLocResult.maxVal;
+    double slope = 255.0 / (max - min);
+    double yint = 255.0 - slope * max;
+    imgTransform = ImageProcessor.rescaleToByte(imgTransform.toImageCV(), slope, yint);
+    return imgTransform;
+  }
+
+  public static PlanarImage rescaleForVisualizing(PlanarImage srcImg, Double contrast, Double brigtness) {
+    ImageCV imageForVisualizing = new ImageCV();
+    srcImg.toMat().copyTo(imageForVisualizing);
+    PlanarImage transformImg = transformToByte(imageForVisualizing);
+    transformImg = ImageProcessor.rescaleToByte(transformImg.toImageCV(), contrast / 100.0, brigtness);
+    return transformImg;
   }
 }
