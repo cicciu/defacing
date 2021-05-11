@@ -18,6 +18,13 @@
 *.zip
 *.tar.gz
 *.rar
+*.png
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
+# IntelliJ project files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Ignore Maven files
+target/
