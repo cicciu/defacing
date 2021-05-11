@@ -1,3 +1,4 @@
+import java.util.Random;
 import org.dcm4che3.data.Attributes;
 import org.opencv.core.Core;
 import org.opencv.core.Core.MinMaxLocResult;
@@ -60,17 +61,43 @@ public class Defacer {
   }
 
   public static PlanarImage defaceImage(PlanarImage srcImg, PlanarImage faceDetectImg) {
+    int marge = 5;
+
+    // DRAW A LINE WHEN FACE DETECTED
     ImageCV imageDefaced = new ImageCV();
     srcImg.toMat().copyTo(imageDefaced);
     // scan the image from left to right until the face is detected in Y
     for (int x = 0; x < faceDetectImg.width(); x++) {
       for (int y = 0; y < faceDetectImg.height(); y++) {
-        double pixelValue = faceDetectImg.toMat().get(y, x)[0];
-        if(pixelValue != 0.0) {
-          Imgproc.line(imageDefaced, new Point(x,y), new Point(x,0), new Scalar(2000,2000,2000));
+        double faceDetectPixelValue = faceDetectImg.toMat().get(y, x)[0];
+        if(faceDetectPixelValue != 0.0) {
+          Point facePointDetected = new Point(x,y);
+          double sourcePixelValue = 2000;
+          Imgproc.line(imageDefaced, facePointDetected, new Point(x,0), new Scalar(sourcePixelValue));
         }
       }
     }
+    // BLUR THIS IMAGE
+    ImageCV imgBlur = new ImageCV();
+    imageDefaced.toMat().copyTo(imgBlur);
+    Imgproc.blur(imgBlur.toImageCV(), imgBlur.toMat(), new Size(20,20), new Point(-20, -20), Core.BORDER_DEFAULT);
+
+
+
+    // APPLY IN THE REAL IMAGE A LINE WITH RANDOM Y OF BLUR IMAGE
+    for (int x = 0; x < faceDetectImg.width(); x++) {
+      for (int y = 0; y < faceDetectImg.height(); y++) {
+        double faceDetectPixelValue = faceDetectImg.toMat().get(y, x)[0];
+        if(faceDetectPixelValue != 0.0) {
+          int yRand = DefacingUtil.randomY(faceDetectImg.height(), y, marge);
+          Point facePointDetected = new Point(x,yRand);
+          double sourcePixelValue = DefacingUtil.randomY(faceDetectImg.height(), y, 5);
+          Scalar scalar = new Scalar(imgBlur.toMat().get(yRand, x)[0]);
+          Imgproc.line(imageDefaced, facePointDetected, new Point(x,0), scalar);
+        }
+      }
+    }
+
     return imageDefaced;
   }
 
