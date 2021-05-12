@@ -4,6 +4,7 @@ import org.opencv.core.Core.MinMaxLocResult;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -21,6 +22,9 @@ public class Defacer {
   public static PlanarImage apply(Attributes attributes, PlanarImage srcImg) {
     PlanarImage faceDetectionImg = faceDetection(srcImg);
     PlanarImage defaceImage = addRandPxlLine(srcImg, faceDetectionImg);
+
+    //PlanarImage mergeImage = ImageProcessor.combineTwoImages(srcImg.toImageCV(), defaceImage.toMat(), 100);
+
     PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(defaceImage, 100.0, 50.0);
     return imageForVisualizing;
   }
@@ -74,6 +78,14 @@ public class Defacer {
         if(faceDetectPixelValue != 0.0 ) {
           faceDetected = true;
           yPositionFaceDetected = y;
+
+          // Put random points before the first 10 lines of the face detection
+          int yR = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
+          for (int yy = yPositionFaceDetected; yy < yR; yy++) {
+            int yR2 = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
+            double randomPixelColor = srcImg.toMat().get(yR2, x)[0];
+            randPxlLineImg.toMat().put(yy ,x, randomPixelColor);
+          }
         }
 
         if(faceDetected) {
@@ -85,10 +97,24 @@ public class Defacer {
     }
 
     // BLUR THIS IMAGE
-    /*ImageCV imgBlur = new ImageCV();
-    randPxlLineImg.toMat().copyTo(imgBlur);
-    Imgproc.blur(imgBlur.toImageCV(), imgBlur.toMat(), new Size(20,20), new Point(-20, -20), Core.BORDER_DEFAULT);*/
+    ImageCV bluredImgRandPxlLine = new ImageCV();
+    randPxlLineImg.toMat().copyTo(bluredImgRandPxlLine);
+    Imgproc.blur(randPxlLineImg.toImageCV(), bluredImgRandPxlLine.toMat(), new Size(3,3), new Point(-3, -3), Core.BORDER_DEFAULT);
 
-    return randPxlLineImg;
+
+    // MERGE SRC AND BLURED IMAGE
+    ImageCV newImg = new ImageCV();
+    srcImg.toMat().copyTo(newImg);
+
+    for (int x = 0; x < faceDetectImg.width(); x++) {
+      for (int y = faceDetectImg.height() - 1; y > 0; y--) {
+        if(randPxlLineImg.toMat().get(y,x)[0] != 0.0 ) {
+          newImg.toMat().put(y ,x, bluredImgRandPxlLine.toMat().get(y,x)[0]);
+        } else {
+          newImg.toMat().put(y, x, srcImg.toMat().get(y,x)[0]);
+        }
+      }
+    }
+    return newImg;
   }
 }
