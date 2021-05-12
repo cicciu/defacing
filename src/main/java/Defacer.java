@@ -20,9 +20,10 @@ public class Defacer {
 
   public static PlanarImage apply(Attributes attributes, PlanarImage srcImg) {
     PlanarImage faceDetectionImg = faceDetection(srcImg);
-    PlanarImage defaceImage = addRandPxlLine(srcImg, faceDetectionImg);
+    PlanarImage randPxlLineImg = addRandPxlLine(srcImg, faceDetectionImg);
+    PlanarImage mergedImg = mergeImg(srcImg, randPxlLineImg, faceDetectionImg);
 
-    PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(defaceImage, 100.0, 50.0);
+    PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(mergedImg, 100.0, 50.0);
     return imageForVisualizing;
   }
 
@@ -95,7 +96,10 @@ public class Defacer {
         }
       }
     }
+    return randPxlLineImg;
+  }
 
+  public static PlanarImage mergeImg(PlanarImage srcImg, PlanarImage randPxlLineImg, PlanarImage faceDetectImg) {
     // MERGE IMAGE SRC AND RAND PIXEL LINE
     ImageCV newImg = new ImageCV();
     srcImg.toMat().copyTo(newImg);
