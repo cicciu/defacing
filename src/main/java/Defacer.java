@@ -19,43 +19,43 @@ public class Defacer {
   private Defacer() {}
 
   public static PlanarImage apply(Attributes attributes, PlanarImage srcImg) {
-    PlanarImage faceDetectImg = faceDetect(srcImg);
-    PlanarImage defaceImage = addRandPxlLine(srcImg, faceDetectImg);
+    PlanarImage faceDetectionImg = faceDetection(srcImg);
+    PlanarImage defaceImage = addRandPxlLine(srcImg, faceDetectionImg);
     PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(defaceImage, 100.0, 50.0);
     return imageForVisualizing;
   }
 
-  public static PlanarImage faceDetect(PlanarImage srcImg) {
-    ImageCV faceDetectImg = new ImageCV();
-    srcImg.toMat().copyTo(faceDetectImg);
+  public static PlanarImage faceDetection(PlanarImage srcImg) {
+    ImageCV faceDetectionImg = new ImageCV();
+    srcImg.toMat().copyTo(faceDetectionImg);
 
-    MinMaxLocResult minMaxLocResult = ImageProcessor.findMinMaxValues(faceDetectImg.toMat());
+    MinMaxLocResult minMaxLocResult = ImageProcessor.findMinMaxValues(faceDetectionImg.toMat());
 
     // THRESHOLD
-    Imgproc.threshold(faceDetectImg.toImageCV(), faceDetectImg.toMat(), 200, minMaxLocResult.maxVal, Imgproc.THRESH_BINARY);
+    Imgproc.threshold(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), 200, minMaxLocResult.maxVal, Imgproc.THRESH_BINARY);
 
     // ERODE
     Mat kernel = new Mat();
     int kernel_size = 3;
     Mat ones = Mat.ones( kernel_size, kernel_size, CvType.CV_32F);
     Core.multiply(ones, new Scalar(1/(double)(kernel_size*kernel_size)), kernel);
-    Imgproc.erode(faceDetectImg.toImageCV(), faceDetectImg.toMat(), kernel);
+    Imgproc.erode(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), kernel);
 
     // FILL BLACK HOLE
     Mat kernel2 = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(30,30));
-    Imgproc.morphologyEx(faceDetectImg.toImageCV(), faceDetectImg.toMat(), Imgproc.MORPH_CLOSE, kernel2);
+    Imgproc.morphologyEx(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), Imgproc.MORPH_CLOSE, kernel2);
 
     // RESCALE 8BIT
-    faceDetectImg = DefacingUtil.transformToByte(faceDetectImg).toImageCV();
+    faceDetectionImg = DefacingUtil.transformToByte(faceDetectionImg).toImageCV();
 
     // CANNY DETECT CONTOUR
-    Imgproc.Canny(faceDetectImg.toImageCV(), faceDetectImg.toMat(), 240, 260);
+    Imgproc.Canny(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), 240, 260);
 
     // DRAW BLACK RECT 1/3
-    Rect rect = new Rect(0, faceDetectImg.height()/3, faceDetectImg.width(),faceDetectImg.height());
-    Imgproc.rectangle(faceDetectImg.toImageCV(), rect, new Scalar(0,0,0), Imgproc.FILLED);
+    Rect rect = new Rect(0, faceDetectionImg.height()/3, faceDetectionImg.width(),faceDetectionImg.height());
+    Imgproc.rectangle(faceDetectionImg.toImageCV(), rect, new Scalar(0,0,0), Imgproc.FILLED);
 
-    return faceDetectImg;
+    return faceDetectionImg;
   }
 
   public static PlanarImage addRandPxlLine(PlanarImage srcImg, PlanarImage faceDetectImg) {
