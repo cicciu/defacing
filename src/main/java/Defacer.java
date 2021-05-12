@@ -54,7 +54,8 @@ public class Defacer {
     Imgproc.Canny(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), 240, 260);
 
     // DRAW BLACK RECT 1/3
-    Rect rect = new Rect(0, faceDetectionImg.height()/3, faceDetectionImg.width(),faceDetectionImg.height());
+    int rectProportion = (int) (faceDetectionImg.height()/2.9);
+    Rect rect = new Rect(0, rectProportion, faceDetectionImg.width(),faceDetectionImg.height());
     Imgproc.rectangle(faceDetectionImg.toImageCV(), rect, new Scalar(0,0,0), Imgproc.FILLED);
 
     return faceDetectionImg;
