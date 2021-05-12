@@ -4,7 +4,6 @@ import org.opencv.core.Core.MinMaxLocResult;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -91,24 +90,20 @@ public class Defacer {
           int yRand = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
           double randomPixelColor = srcImg.toMat().get(yRand, x)[0];
           randPxlLineImg.toMat().put(y ,x, randomPixelColor);
+        } else {
+          randPxlLineImg.toMat().put(y ,x, 0.0);
         }
       }
     }
 
-    // BLUR THIS IMAGE
-    ImageCV bluredImgRandPxlLine = new ImageCV();
-    randPxlLineImg.toMat().copyTo(bluredImgRandPxlLine);
-    Imgproc.blur(randPxlLineImg.toImageCV(), bluredImgRandPxlLine.toMat(), new Size(5,5));
-
-
-    // MERGE SRC AND BLURED IMAGE
+    // MERGE IMAGE SRC AND RAND PIXEL LINE
     ImageCV newImg = new ImageCV();
     srcImg.toMat().copyTo(newImg);
 
     for (int x = 0; x < faceDetectImg.width(); x++) {
       for (int y = faceDetectImg.height() - 1; y > 0; y--) {
         if(randPxlLineImg.toMat().get(y,x)[0] != 0.0 ) {
-          newImg.toMat().put(y ,x, bluredImgRandPxlLine.toMat().get(y,x)[0]);
+          newImg.toMat().put(y ,x, randPxlLineImg.toMat().get(y,x)[0]);
         } else {
           newImg.toMat().put(y, x, srcImg.toMat().get(y,x)[0]);
         }
