@@ -1,11 +1,9 @@
-import java.util.Random;
 import org.dcm4che3.data.Attributes;
 import org.opencv.core.Core;
 import org.opencv.core.Core.MinMaxLocResult;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -22,8 +20,8 @@ public class Defacer {
 
   public static PlanarImage apply(Attributes attributes, PlanarImage srcImg) {
     PlanarImage faceDetectImg = faceDetect(srcImg);
-    PlanarImage defaceImage = defaceImage(srcImg, faceDetectImg);
-    PlanarImage imageForVisualizing = rescaleForVisualizing(defaceImage, 50.0, 50.0);
+    PlanarImage defaceImage = addRandPxlLine(srcImg, faceDetectImg);
+    PlanarImage imageForVisualizing = rescaleForVisualizing(defaceImage, 100.0, 50.0);
     return imageForVisualizing;
   }
 
@@ -60,45 +58,38 @@ public class Defacer {
     return faceDetectImg;
   }
 
-  public static PlanarImage defaceImage(PlanarImage srcImg, PlanarImage faceDetectImg) {
-    int marge = 5;
+  public static PlanarImage addRandPxlLine(PlanarImage srcImg, PlanarImage faceDetectImg) {
+    ImageCV randPxlLineImg = new ImageCV();
+    srcImg.toMat().copyTo(randPxlLineImg);
 
-    // DRAW A LINE WHEN FACE DETECTED
-    ImageCV imageDefaced = new ImageCV();
-    srcImg.toMat().copyTo(imageDefaced);
-    // scan the image from left to right until the face is detected in Y
+    // DRAW A LINE WITH RANDOM VALUE WHEN FACE DETECTED
+    int marge = 10;
+    // scan the image from left to right and bottom to top until the face is detected in Y
     for (int x = 0; x < faceDetectImg.width(); x++) {
-      for (int y = 0; y < faceDetectImg.height(); y++) {
+      boolean faceDetected = false;
+      int yPositionFaceDetected = 0;
+
+      for (int y = faceDetectImg.height()-1; y > 0; y--) {
         double faceDetectPixelValue = faceDetectImg.toMat().get(y, x)[0];
-        if(faceDetectPixelValue != 0.0) {
-          Point facePointDetected = new Point(x,y);
-          double sourcePixelValue = 2000;
-          Imgproc.line(imageDefaced, facePointDetected, new Point(x,0), new Scalar(sourcePixelValue));
+        if(faceDetectPixelValue != 0.0 ) {
+          faceDetected = true;
+          yPositionFaceDetected = y;
+        }
+
+        if(faceDetected) {
+          int yRand = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
+          double randomPixelColor = srcImg.toMat().get(yRand, x)[0];
+          randPxlLineImg.toMat().put(y ,x, randomPixelColor);
         }
       }
     }
+
     // BLUR THIS IMAGE
-    ImageCV imgBlur = new ImageCV();
-    imageDefaced.toMat().copyTo(imgBlur);
-    Imgproc.blur(imgBlur.toImageCV(), imgBlur.toMat(), new Size(20,20), new Point(-20, -20), Core.BORDER_DEFAULT);
+    /*ImageCV imgBlur = new ImageCV();
+    randPxlLineImg.toMat().copyTo(imgBlur);
+    Imgproc.blur(imgBlur.toImageCV(), imgBlur.toMat(), new Size(20,20), new Point(-20, -20), Core.BORDER_DEFAULT);*/
 
-
-
-    // APPLY IN THE REAL IMAGE A LINE WITH RANDOM Y OF BLUR IMAGE
-    for (int x = 0; x < faceDetectImg.width(); x++) {
-      for (int y = 0; y < faceDetectImg.height(); y++) {
-        double faceDetectPixelValue = faceDetectImg.toMat().get(y, x)[0];
-        if(faceDetectPixelValue != 0.0) {
-          int yRand = DefacingUtil.randomY(faceDetectImg.height(), y, marge);
-          Point facePointDetected = new Point(x,yRand);
-          double sourcePixelValue = DefacingUtil.randomY(faceDetectImg.height(), y, 5);
-          Scalar scalar = new Scalar(imgBlur.toMat().get(yRand, x)[0]);
-          Imgproc.line(imageDefaced, facePointDetected, new Point(x,0), scalar);
-        }
-      }
-    }
-
-    return imageDefaced;
+    return randPxlLineImg;
   }
 
   public static PlanarImage transformToByte(PlanarImage srcImg) {
