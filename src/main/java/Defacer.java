@@ -23,8 +23,6 @@ public class Defacer {
     PlanarImage faceDetectionImg = faceDetection(srcImg);
     PlanarImage defaceImage = addRandPxlLine(srcImg, faceDetectionImg);
 
-    //PlanarImage mergeImage = ImageProcessor.combineTwoImages(srcImg.toImageCV(), defaceImage.toMat(), 100);
-
     PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(defaceImage, 100.0, 50.0);
     return imageForVisualizing;
   }
@@ -77,18 +75,19 @@ public class Defacer {
         double faceDetectPixelValue = faceDetectImg.toMat().get(y, x)[0];
         if(faceDetectPixelValue != 0.0 ) {
           faceDetected = true;
-          yPositionFaceDetected = y;
+          yPositionFaceDetected = y+1;
 
-          // Put random points before the first 10 lines of the face detection
+          // Put random color before the first 10 lines of the face detection
           int yR = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
-          for (int yy = yPositionFaceDetected; yy < yR; yy++) {
-            int yR2 = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
-            double randomPixelColor = srcImg.toMat().get(yR2, x)[0];
+          for (int yy = yPositionFaceDetected; yy <= yR; yy++) {
+            int yRand = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
+            double randomPixelColor = srcImg.toMat().get(yRand, x)[0];
             randPxlLineImg.toMat().put(yy ,x, randomPixelColor);
           }
         }
 
         if(faceDetected) {
+          // Put random color after the face detection
           int yRand = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
           double randomPixelColor = srcImg.toMat().get(yRand, x)[0];
           randPxlLineImg.toMat().put(y ,x, randomPixelColor);
@@ -99,7 +98,7 @@ public class Defacer {
     // BLUR THIS IMAGE
     ImageCV bluredImgRandPxlLine = new ImageCV();
     randPxlLineImg.toMat().copyTo(bluredImgRandPxlLine);
-    Imgproc.blur(randPxlLineImg.toImageCV(), bluredImgRandPxlLine.toMat(), new Size(3,3), new Point(-3, -3), Core.BORDER_DEFAULT);
+    Imgproc.blur(randPxlLineImg.toImageCV(), bluredImgRandPxlLine.toMat(), new Size(5,5));
 
 
     // MERGE SRC AND BLURED IMAGE
