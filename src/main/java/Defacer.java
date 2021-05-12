@@ -21,7 +21,7 @@ public class Defacer {
   public static PlanarImage apply(Attributes attributes, PlanarImage srcImg) {
     PlanarImage faceDetectImg = faceDetect(srcImg);
     PlanarImage defaceImage = addRandPxlLine(srcImg, faceDetectImg);
-    PlanarImage imageForVisualizing = rescaleForVisualizing(defaceImage, 100.0, 50.0);
+    PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(defaceImage, 100.0, 50.0);
     return imageForVisualizing;
   }
 
@@ -46,7 +46,7 @@ public class Defacer {
     Imgproc.morphologyEx(faceDetectImg.toImageCV(), faceDetectImg.toMat(), Imgproc.MORPH_CLOSE, kernel2);
 
     // RESCALE 8BIT
-    faceDetectImg = transformToByte(faceDetectImg).toImageCV();
+    faceDetectImg = DefacingUtil.transformToByte(faceDetectImg).toImageCV();
 
     // CANNY DETECT CONTOUR
     Imgproc.Canny(faceDetectImg.toImageCV(), faceDetectImg.toMat(), 240, 260);
@@ -90,26 +90,5 @@ public class Defacer {
     Imgproc.blur(imgBlur.toImageCV(), imgBlur.toMat(), new Size(20,20), new Point(-20, -20), Core.BORDER_DEFAULT);*/
 
     return randPxlLineImg;
-  }
-
-  public static PlanarImage transformToByte(PlanarImage srcImg) {
-    ImageCV imgTransform = new ImageCV();
-    srcImg.toMat().copyTo(imgTransform);
-
-    MinMaxLocResult minMaxLocResult = ImageProcessor.findMinMaxValues(imgTransform.toMat());
-    double min = minMaxLocResult.minVal;
-    double max = minMaxLocResult.maxVal;
-    double slope = 255.0 / (max - min);
-    double yint = 255.0 - slope * max;
-    imgTransform = ImageProcessor.rescaleToByte(imgTransform.toImageCV(), slope, yint);
-    return imgTransform;
-  }
-
-  public static PlanarImage rescaleForVisualizing(PlanarImage srcImg, Double contrast, Double brigtness) {
-    ImageCV imageForVisualizing = new ImageCV();
-    srcImg.toMat().copyTo(imageForVisualizing);
-    PlanarImage transformImg = transformToByte(imageForVisualizing);
-    transformImg = ImageProcessor.rescaleToByte(transformImg.toImageCV(), contrast / 100.0, brigtness);
-    return transformImg;
   }
 }
