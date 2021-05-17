@@ -22,7 +22,7 @@ public class Defacer {
     PlanarImage faceDetectionImg = faceDetection(srcImg);
     PlanarImage randPxlLineImg = addRandPxlLine(srcImg, faceDetectionImg);
     PlanarImage mergedImg = mergeImg(srcImg, randPxlLineImg, faceDetectionImg);
-    PlanarImage imgBlured = blurImg(mergedImg, faceDetectionImg);
+    PlanarImage imgBlured = blurImg(mergedImg, randPxlLineImg, faceDetectionImg);
     PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(imgBlured, 100.0, 50.0);
     return imageForVisualizing;
   }
@@ -101,11 +101,21 @@ public class Defacer {
     return randPxlLineImg;
   }
 
-  public static PlanarImage blurImg(PlanarImage srcImg, PlanarImage faceDetectImg) {
+  public static PlanarImage blurImg(PlanarImage srcImg, PlanarImage randPxlLineImg, PlanarImage faceDetectImg) {
     // BLUR THIS IMAGE
     ImageCV bluredImgRandPxlLine = new ImageCV();
     srcImg.toMat().copyTo(bluredImgRandPxlLine);
     Imgproc.blur(bluredImgRandPxlLine.toImageCV(), bluredImgRandPxlLine.toMat(), new Size(4, 4));
+
+
+    for (int x = 0; x < faceDetectImg.width(); x++) {
+      for (int y = faceDetectImg.height() - 1; y > 0; y--) {
+        if(randPxlLineImg.toMat().get(y,x)[0] == 0.0 ) {
+          bluredImgRandPxlLine.toMat().put(y, x, srcImg.toMat().get(y,x)[0]);
+        }
+      }
+    }
+
     return bluredImgRandPxlLine;
   }
 
