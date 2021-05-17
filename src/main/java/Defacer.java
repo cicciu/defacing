@@ -22,8 +22,8 @@ public class Defacer {
     PlanarImage faceDetectionImg = faceDetection(srcImg);
     PlanarImage randPxlLineImg = addRandPxlLine(srcImg, faceDetectionImg);
     PlanarImage mergedImg = mergeImg(srcImg, randPxlLineImg, faceDetectionImg);
-
-    PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(mergedImg, 100.0, 50.0);
+    PlanarImage imgBlured = blurImg(mergedImg, faceDetectionImg);
+    PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(imgBlured, 100.0, 50.0);
     return imageForVisualizing;
   }
 
@@ -34,11 +34,11 @@ public class Defacer {
     MinMaxLocResult minMaxLocResult = ImageProcessor.findMinMaxValues(faceDetectionImg.toMat());
 
     // THRESHOLD
-    Imgproc.threshold(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), 200, minMaxLocResult.maxVal, Imgproc.THRESH_BINARY);
+    Imgproc.threshold(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), 300, minMaxLocResult.maxVal, Imgproc.THRESH_BINARY);
 
     // ERODE
     Mat kernel = new Mat();
-    int kernel_size = 3;
+    int kernel_size = 1;
     Mat ones = Mat.ones( kernel_size, kernel_size, CvType.CV_32F);
     Core.multiply(ones, new Scalar(1/(double)(kernel_size*kernel_size)), kernel);
     Imgproc.erode(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), kernel);
@@ -71,17 +71,18 @@ public class Defacer {
     for (int x = 0; x < faceDetectImg.width(); x++) {
       boolean faceDetected = false;
       int yPositionFaceDetected = 0;
+      int yOffsetRand = 4;
 
       for (int y = faceDetectImg.height()-1; y > 0; y--) {
         double faceDetectPixelValue = faceDetectImg.toMat().get(y, x)[0];
         if(faceDetectPixelValue != 0.0 ) {
           faceDetected = true;
-          yPositionFaceDetected = y+1;
+          yPositionFaceDetected = y;
 
           // Put random color before the first 10 lines of the face detection
-          int yR = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
+          int yR =yPositionFaceDetected+marge;
           for (int yy = yPositionFaceDetected; yy <= yR; yy++) {
-            int yRand = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
+            int yRand = DefacingUtil.randomY(yPositionFaceDetected+yOffsetRand, yPositionFaceDetected+yOffsetRand+marge, 1);
             double randomPixelColor = srcImg.toMat().get(yRand, x)[0];
             randPxlLineImg.toMat().put(yy ,x, randomPixelColor);
           }
@@ -89,7 +90,7 @@ public class Defacer {
 
         if(faceDetected) {
           // Put random color after the face detection
-          int yRand = DefacingUtil.randomY(yPositionFaceDetected, yPositionFaceDetected+marge, 1);
+          int yRand = DefacingUtil.randomY(yPositionFaceDetected+yOffsetRand, yPositionFaceDetected+yOffsetRand+marge, 1);
           double randomPixelColor = srcImg.toMat().get(yRand, x)[0];
           randPxlLineImg.toMat().put(y ,x, randomPixelColor);
         } else {
@@ -98,6 +99,14 @@ public class Defacer {
       }
     }
     return randPxlLineImg;
+  }
+
+  public static PlanarImage blurImg(PlanarImage srcImg, PlanarImage faceDetectImg) {
+    // BLUR THIS IMAGE
+    ImageCV bluredImgRandPxlLine = new ImageCV();
+    srcImg.toMat().copyTo(bluredImgRandPxlLine);
+    Imgproc.blur(bluredImgRandPxlLine.toImageCV(), bluredImgRandPxlLine.toMat(), new Size(4, 4));
+    return bluredImgRandPxlLine;
   }
 
   public static PlanarImage mergeImg(PlanarImage srcImg, PlanarImage randPxlLineImg, PlanarImage faceDetectImg) {
