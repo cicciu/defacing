@@ -34,7 +34,7 @@ public class Defacer {
     MinMaxLocResult minMaxLocResult = ImageProcessor.findMinMaxValues(faceDetectionImg.toMat());
 
     // THRESHOLD
-    Imgproc.threshold(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), 300, minMaxLocResult.maxVal, Imgproc.THRESH_BINARY);
+    Imgproc.threshold(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), 800, minMaxLocResult.maxVal, Imgproc.THRESH_BINARY);
 
     // ERODE
     Mat kernel = new Mat();
@@ -67,11 +67,11 @@ public class Defacer {
 
     // DRAW A LINE WITH RANDOM VALUE WHEN FACE DETECTED
     int marge = 10;
+    int yOffsetRand = 1;
     // scan the image from left to right and bottom to top until the face is detected in Y
     for (int x = 0; x < faceDetectImg.width(); x++) {
       boolean faceDetected = false;
       int yPositionFaceDetected = 0;
-      int yOffsetRand = 4;
 
       for (int y = faceDetectImg.height()-1; y > 0; y--) {
         double faceDetectPixelValue = faceDetectImg.toMat().get(y, x)[0];
