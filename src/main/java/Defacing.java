@@ -31,8 +31,8 @@ public class Defacing {
       DicomImageReader reader = new DicomImageReader(new DicomImageReaderSpi());
       reader.setInput(
           new DicomFileInputStream(dicomPath));
-
-      Attributes attributes = new Attributes();
+      DicomFileInputStream in = new DicomFileInputStream(dicomPath);
+      Attributes attributes = in.readDataset();
 
       Editable<PlanarImage> editable = transformImage(attributes, reader);
 
