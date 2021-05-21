@@ -73,29 +73,31 @@ public class Defacer {
     srcImg.toMat().copyTo(randPxlLineImg);
 
     // DRAW A LINE WITH RANDOM VALUE WHEN FACE DETECTED
-    int marge = 20;
     int yOffsetRand = 1;
 
     // scan the image from left to right and bottom to top until the face is detected in Y
     for (int x = 0; x < faceDetectImg.width(); x++) {
       boolean faceDetected = false;
       int yFaceDetected = 0;
-      int thicknessSkin = DefacingUtil.randomY(3, 5, 1);
+      int thicknessSkin = DefacingUtil.randomY(4, 7, 1);
+      int marge = 20;
 
-      for (int y = faceDetectImg.height()-1; y > 0 - thicknessSkin; y--) {
+      for (int y = faceDetectImg.height() - 1; y > 0; y--) {
         double faceDetectPixelValue = faceDetectImg.toMat().get(y, x)[0];
-        if(faceDetectPixelValue == 255.0) {
+        if (faceDetectPixelValue == 255.0) {
           faceDetected = true;
           yFaceDetected = y;
         }
 
-        if(faceDetected) {
+        if (faceDetected) {
           // Put random color after the face detection
-          int yRand = DefacingUtil.randomY(yFaceDetected+yOffsetRand, yFaceDetected+yOffsetRand+marge, 1);
+          int yRand =
+              DefacingUtil.randomY(
+                  yFaceDetected + yOffsetRand, yFaceDetected + yOffsetRand + marge, 1);
           double randomPixelColor = srcImg.toMat().get(yRand, x)[0];
-          randPxlLineImg.toMat().put(y+thicknessSkin ,x, randomPixelColor);
+          randPxlLineImg.toMat().put(y + thicknessSkin, x, randomPixelColor);
         } else {
-          randPxlLineImg.toMat().put(y ,x, 0.0);
+          randPxlLineImg.toMat().put(y, x, 0.0);
         }
       }
     }
