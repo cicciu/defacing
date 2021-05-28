@@ -27,7 +27,7 @@ public class Defacer {
   public static PlanarImage apply(Attributes attributes, PlanarImage srcImg) {
     PlanarImage skinImg = filterBySkin(attributes, srcImg);
     PlanarImage faceDetectionImg = faceDetection(srcImg);
-    PlanarImage randPxlLineImg = addRandPxlLine(srcImg, faceDetectionImg);
+    PlanarImage randPxlLineImg = addRandPxlLine(srcImg, faceDetectionImg, skinImg);
     PlanarImage mergedImg = mergeImg(srcImg, randPxlLineImg, faceDetectionImg);
     PlanarImage imgBlured = blurImg(mergedImg, randPxlLineImg, faceDetectionImg);
     PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(imgBlured, 50.0, 20.0);
@@ -46,23 +46,12 @@ public class Defacer {
 
     MinMaxLocResult minMaxLutFaceDetectionImg = ImageProcessor.findMinMaxValues(skinImg);
 
+    //Imgproc.threshold(imageLUT.toImageCV(), skinImg.toMat(), -100, minMaxLut.maxVal, Imgproc.THRESH_TOZERO);
+    //Imgproc.threshold(skinImg.toImageCV(), skinImg.toMat(), 300, minMaxLut.maxVal, Imgproc.THRESH_TOZERO_INV);
 
-    //Imgproc.threshold(imageLUT.toImageCV(), skinImg.toMat(), 700, minMaxLut.maxVal, Imgproc.THRESH_TOZERO);
-    //Imgproc.threshold(skinImg.toImageCV(), skinImg.toMat(), 3000, minMaxLut.maxVal, Imgproc.THRESH_TOZERO_INV);
-
-    Imgproc.threshold(skinImg.toImageCV(), skinImg.toMat(), hounsfieldToPxlValue(attributes, -18), minMaxLutFaceDetectionImg.maxVal, Imgproc.THRESH_TOZERO);
-    Imgproc.threshold(skinImg.toImageCV(), skinImg.toMat(), hounsfieldToPxlValue(attributes, 90), minMaxLutFaceDetectionImg.maxVal, Imgproc.THRESH_TOZERO_INV);
+    Imgproc.threshold(skinImg.toImageCV(), skinImg.toMat(), DefacingUtil.hounsfieldToPxlValue(attributes, 100), minMaxLutFaceDetectionImg.maxVal, Imgproc.THRESH_TOZERO);
+    Imgproc.threshold(skinImg.toImageCV(), skinImg.toMat(), DefacingUtil.hounsfieldToPxlValue(attributes, 300), minMaxLutFaceDetectionImg.maxVal, Imgproc.THRESH_TOZERO_INV);
     return skinImg;
-  }
-
-  public static double hounsfieldToPxlValue(Attributes attributes, double hounsfield) {
-    String interceptS = attributes.getString(Tag.RescaleIntercept);
-    String slopeS = attributes.getString(Tag.RescaleSlope);
-    double intercept = Double.parseDouble(interceptS);
-    double slope = Double.parseDouble(slopeS);
-
-    //int hounsfield = pixel * slope + intercept;
-    return (hounsfield - intercept) / slope;
   }
 
   public static PlanarImage faceDetection(PlanarImage srcImg) {
@@ -105,7 +94,7 @@ public class Defacer {
     return faceDetectionImg;
   }
 
-  public static PlanarImage addRandPxlLine(PlanarImage srcImg, PlanarImage faceDetectImg) {
+  public static PlanarImage addRandPxlLine(PlanarImage srcImg, PlanarImage faceDetectImg, PlanarImage skinImg) {
     ImageCV randPxlLineImg = new ImageCV();
     srcImg.toMat().copyTo(randPxlLineImg);
 
@@ -117,7 +106,7 @@ public class Defacer {
       boolean faceDetected = false;
       int yFaceDetected = 0;
       int thicknessSkin = DefacingUtil.randomY(4, 7, 1);
-      int marge = 20;
+      int margeY = 20;
 
       for (int y = faceDetectImg.height() - 1; y > 0; y--) {
         double faceDetectPixelValue = faceDetectImg.toMat().get(y, x)[0];
@@ -128,10 +117,9 @@ public class Defacer {
 
         if (faceDetected) {
           // Put random color after the face detection
-          int yRand =
-              DefacingUtil.randomY(
-                  yFaceDetected + yOffsetRand, yFaceDetected + yOffsetRand + marge, 1);
-          double randomPixelColor = srcImg.toMat().get(yRand, x)[0];
+          int minY = yFaceDetected + yOffsetRand;
+          int maxY = yFaceDetected + yOffsetRand + margeY;
+          double randomPixelColor = DefacingUtil.pickRndYPxlColor2(x, minY, maxY, srcImg);
           randPxlLineImg.toMat().put(y + thicknessSkin, x, randomPixelColor);
         } else {
           randPxlLineImg.toMat().put(y, x, 0.0);
