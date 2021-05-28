@@ -1,9 +1,4 @@
 import org.dcm4che3.data.Attributes;
-import org.dcm4che3.data.Tag;
-import org.dcm4che3.img.DicomImageAdapter;
-import org.dcm4che3.img.DicomImageReadParam;
-import org.dcm4che3.img.ImageRendering;
-import org.dcm4che3.img.stream.ImageDescriptor;
 import org.opencv.core.Core;
 import org.opencv.core.Core.MinMaxLocResult;
 
@@ -25,9 +20,8 @@ public class Defacer {
   private Defacer() {}
 
   public static PlanarImage apply(Attributes attributes, PlanarImage srcImg) {
-    PlanarImage skinImg = filterBySkin(attributes, srcImg);
     PlanarImage faceDetectionImg = faceDetection(srcImg);
-    PlanarImage randPxlLineImg = addRandPxlLine(srcImg, faceDetectionImg, skinImg);
+    PlanarImage randPxlLineImg = addRandPxlLine(srcImg, faceDetectionImg);
     PlanarImage mergedImg = mergeImg(srcImg, randPxlLineImg, faceDetectionImg);
     PlanarImage imgBlured = blurImg(mergedImg, randPxlLineImg, faceDetectionImg);
     PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(imgBlured, 50.0, 20.0);
@@ -35,19 +29,10 @@ public class Defacer {
   }
 
   public static PlanarImage filterBySkin(Attributes attributes, PlanarImage srcImg) {
-    ImageDescriptor imageDescriptor = new ImageDescriptor(attributes);
-    DicomImageAdapter dicomImageAdapter = new DicomImageAdapter(srcImg, imageDescriptor);
-    DicomImageReadParam imageReadParam = new DicomImageReadParam();
-    PlanarImage imageLUT = ImageRendering.getModalityLutImage(dicomImageAdapter, imageReadParam);
-    MinMaxLocResult minMaxLut = ImageProcessor.findMinMaxValues(imageLUT.toMat());
-
     ImageCV skinImg = new ImageCV();
     srcImg.toMat().copyTo(skinImg);
 
     MinMaxLocResult minMaxLutFaceDetectionImg = ImageProcessor.findMinMaxValues(skinImg);
-
-    //Imgproc.threshold(imageLUT.toImageCV(), skinImg.toMat(), -100, minMaxLut.maxVal, Imgproc.THRESH_TOZERO);
-    //Imgproc.threshold(skinImg.toImageCV(), skinImg.toMat(), 300, minMaxLut.maxVal, Imgproc.THRESH_TOZERO_INV);
 
     Imgproc.threshold(skinImg.toImageCV(), skinImg.toMat(), DefacingUtil.hounsfieldToPxlValue(attributes, 100), minMaxLutFaceDetectionImg.maxVal, Imgproc.THRESH_TOZERO);
     Imgproc.threshold(skinImg.toImageCV(), skinImg.toMat(), DefacingUtil.hounsfieldToPxlValue(attributes, 300), minMaxLutFaceDetectionImg.maxVal, Imgproc.THRESH_TOZERO_INV);
@@ -94,13 +79,12 @@ public class Defacer {
     return faceDetectionImg;
   }
 
-  public static PlanarImage addRandPxlLine(PlanarImage srcImg, PlanarImage faceDetectImg, PlanarImage skinImg) {
+  public static PlanarImage addRandPxlLine(PlanarImage srcImg, PlanarImage faceDetectImg) {
     ImageCV randPxlLineImg = new ImageCV();
     srcImg.toMat().copyTo(randPxlLineImg);
 
     // DRAW A LINE WITH RANDOM VALUE WHEN FACE DETECTED
     int yOffsetRand = 1;
-
     // scan the image from left to right and bottom to top until the face is detected in Y
     for (int x = 0; x < faceDetectImg.width(); x++) {
       boolean faceDetected = false;
@@ -119,7 +103,7 @@ public class Defacer {
           // Put random color after the face detection
           int minY = yFaceDetected + yOffsetRand;
           int maxY = yFaceDetected + yOffsetRand + margeY;
-          double randomPixelColor = DefacingUtil.pickRndYPxlColor2(x, minY, maxY, srcImg);
+          double randomPixelColor = DefacingUtil.pickRndYPxlColor(x, minY, maxY, srcImg);
           randPxlLineImg.toMat().put(y + thicknessSkin, x, randomPixelColor);
         } else {
           randPxlLineImg.toMat().put(y, x, 0.0);
