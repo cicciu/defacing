@@ -21,12 +21,31 @@ public class Defacer {
   private Defacer() {}
 
   public static PlanarImage apply(Attributes attributes, PlanarImage srcImg) {
+    boolean isAxial = isAxial(attributes);
+    boolean isCT = isCT(attributes);
     PlanarImage faceDetectionImg = faceDetection(srcImg);
     PlanarImage randPxlLineImg = addRandPxlLine(srcImg, faceDetectionImg, attributes);
     PlanarImage mergedImg = mergeImg(srcImg, randPxlLineImg, faceDetectionImg);
     PlanarImage imgBlured = blurImg(mergedImg, randPxlLineImg, faceDetectionImg);
     PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(imgBlured, 50.0, 20.0);
     return imageForVisualizing;
+  }
+
+  public static boolean isCT(Attributes attributes) {
+    String sopClassUID = attributes.getString(Tag.SOPClassUID);
+    if (sopClassUID.equals("1.2.840.10008.5.1.4.1.1.2")) {
+      return true;
+    }
+    return false;
+  }
+
+  public static boolean isAxial(Attributes attributes) {
+    double[] vector = attributes.getDoubles(Tag.ImageOrientationPatient);
+    ImageOrientation.Label label = ImageOrientation.makeImageOrientationLabelFromImageOrientationPatient(vector);
+    if (label.equals(ImageOrientation.Label.AXIAL)) {
+      return true;
+    }
+    return false;
   }
 
   public static PlanarImage filterBySkin(Attributes attributes, PlanarImage srcImg) {
