@@ -23,7 +23,7 @@ public class Defacer {
   public static PlanarImage apply(Attributes attributes, PlanarImage srcImg) {
     boolean isAxial = isAxial(attributes);
     boolean isCT = isCT(attributes);
-    PlanarImage faceDetectionImg = faceDetection(srcImg);
+    PlanarImage faceDetectionImg = faceDetection(attributes, srcImg);
     PlanarImage randPxlLineImg = addRandPxlLine(srcImg, faceDetectionImg, attributes);
     PlanarImage mergedImg = mergeImg(srcImg, randPxlLineImg, faceDetectionImg);
     PlanarImage imgBlured = blurImg(mergedImg, randPxlLineImg, faceDetectionImg);
@@ -59,14 +59,14 @@ public class Defacer {
     return skinImg;
   }
 
-  public static PlanarImage faceDetection(PlanarImage srcImg) {
+  public static PlanarImage faceDetection(Attributes attributes, PlanarImage srcImg) {
     ImageCV faceDetectionImg = new ImageCV();
     srcImg.toMat().copyTo(faceDetectionImg);
 
     MinMaxLocResult minMaxLocResult = ImageProcessor.findMinMaxValues(faceDetectionImg.toMat());
 
     // THRESHOLD
-    Imgproc.threshold(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), 300, minMaxLocResult.maxVal, Imgproc.THRESH_BINARY);
+    Imgproc.threshold(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), DefacingUtil.hounsfieldToPxlValue(attributes, -500), minMaxLocResult.maxVal, Imgproc.THRESH_BINARY);
 
     // ERODE
     Mat kernel = new Mat();
