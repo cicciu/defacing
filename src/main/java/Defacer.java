@@ -26,7 +26,7 @@ public class Defacer {
     PlanarImage faceDetectionImg = faceDetection(attributes, srcImg);
     PlanarImage randPxlLineImg = addRandPxlLine(srcImg, faceDetectionImg, attributes);
     PlanarImage mergedImg = mergeImg(srcImg, randPxlLineImg, faceDetectionImg);
-    PlanarImage imgBlured = blurImg(mergedImg, randPxlLineImg, faceDetectionImg);
+    PlanarImage imgBlured = blurImg(mergedImg, faceDetectionImg);
     PlanarImage imageForVisualizing = DefacingUtil.rescaleForVisualizing(imgBlured, 50.0, 20.0);
     return imageForVisualizing;
   }
@@ -70,9 +70,9 @@ public class Defacer {
 
     // ERODE
     Mat kernel = new Mat();
-    int kernel_size = 5;
-    Mat ones = Mat.ones( kernel_size, kernel_size, CvType.CV_32F);
-    Core.multiply(ones, new Scalar(1/(double)(kernel_size*kernel_size)), kernel);
+    int kernelSize = 5;
+    Mat ones = Mat.ones(kernelSize, kernelSize, CvType.CV_32F);
+    Core.multiply(ones, new Scalar(1/(double)(kernelSize*kernelSize)), kernel);
     Imgproc.erode(faceDetectionImg.toImageCV(), faceDetectionImg.toMat(), kernel);
 
     // RESCALE 8BIT
@@ -89,7 +89,7 @@ public class Defacer {
     for (int x = 0; x < faceDetectionImg.width(); x++) {
       for (int y = 0; y < faceDetectionImg.height(); y++) {
         if (faceDetectionImg.toMat().get(y, x)[0] == 255) {
-          Imgproc.line(faceDetectionImg.toImageCV(), new Point(x, y+1),
+          Imgproc.line(faceDetectionImg.toImageCV(), new Point(x, y+1.0),
               new Point(x, faceDetectionImg.height()), new Scalar(0));
           break;
         }
@@ -135,7 +135,7 @@ public class Defacer {
     return randPxlLineImg;
   }
 
-  public static PlanarImage blurImg(PlanarImage srcImg, PlanarImage randPxlLineImg, PlanarImage faceDetectImg) {
+  public static PlanarImage blurImg(PlanarImage srcImg, PlanarImage faceDetectImg) {
     // BLUR THIS IMAGE
     ImageCV bluredImgRandPxlLine = new ImageCV();
     srcImg.toMat().copyTo(bluredImgRandPxlLine);
@@ -145,14 +145,15 @@ public class Defacer {
 
     for (int x = 0; x < faceDetectImg.width(); x++) {
       boolean faceDetected = true;
+      int yNoBlurImg = 0;
       for (int y = 0; y < faceDetectImg.height(); y++) {
         if(faceDetectImg.toMat().get(y,x)[0] != 0.0 ) {
           faceDetected = false;
-          y = y +marginBlurSkin;
+          yNoBlurImg = y + marginBlurSkin;
         }
 
         if (!faceDetected) {
-          bluredImgRandPxlLine.toMat().put(y, x, srcImg.toMat().get(y,x)[0]);
+          bluredImgRandPxlLine.toMat().put(yNoBlurImg, x, srcImg.toMat().get(yNoBlurImg,x)[0]);
         }
       }
     }
