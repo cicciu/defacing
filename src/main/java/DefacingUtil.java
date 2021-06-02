@@ -1,3 +1,4 @@
+import java.security.SecureRandom;
 import java.util.Random;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.Tag;
@@ -11,7 +12,9 @@ public class DefacingUtil {
   private DefacingUtil() {}
 
   public static int randomY(int minY, int maxY, int bound) {
-    return (int)Math.floor(Math.random()*(maxY-minY+bound)+minY);
+    SecureRandom secureRandom = new SecureRandom();
+    double randomDouble = secureRandom.nextDouble();
+    return (int)Math.floor(randomDouble*(maxY-minY+bound)+minY);
   }
 
   public static double pickRndYPxlColor(int xInit, int minY, int maxY, PlanarImage imgToPick) {
